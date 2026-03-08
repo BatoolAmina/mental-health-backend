@@ -1,0 +1,15 @@
+flask
+flask-cors
+torch
+transformers
+numpy
+pickle-mixin
+werkzeug
+python-dotenv
+werkzeug
+pyjwt
+requests
+scikit-learn
+secure-smtplib
+pymongo
+bcrypt
