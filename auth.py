@@ -313,3 +313,24 @@ def logout():
 
     except:
         return jsonify({"error": "Invalid token"}), 401
+
+@auth_bp.route('/refresh', methods=['POST'])
+def refresh():
+    refresh_token = request.json.get('refresh_token')
+    if not refresh_token:
+        return jsonify({"msg": "Missing refresh token"}), 400
+    
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=["HS256"])
+        if payload.get('type') != 'refresh':
+            return jsonify({"msg": "Invalid token type"}), 401
+            
+        new_access_token = jwt.encode({
+            'email': payload['email'],
+            'type': 'access',
+            'exp': datetime.utcnow() + timedelta(minutes=15)
+        }, SECRET_KEY, algorithm="HS256")
+        
+        return jsonify({"access_token": new_access_token}), 200
+    except:
+        return jsonify({"msg": "Refresh token expired"}), 401
