@@ -1,12 +1,13 @@
-pickle-mixin
-secure-smtplib
-google-auth
-google-auth-oauthlib
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+transformers
+tokenizers
+huggingface-hub
+safetensors
 flask
 flask-cors
-werkzeug
-python-dotenv
 gunicorn
+python-dotenv
 pymongo
 dnspython
 pyjwt
@@ -14,11 +15,6 @@ bcrypt
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
-torch
-transformers
-tokenizers
-huggingface-hub
-safetensors
 scikit-learn
 scipy
 numpy
@@ -26,5 +22,4 @@ sentencepiece
 accelerate
 requests
 tqdm
-click
 itsdangerous
