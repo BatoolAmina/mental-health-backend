@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from transformers import RobertaModel, BertModel
 
-
 class MultiHeadContextAttention(nn.Module):
     def __init__(self, hidden_dim):
         super(MultiHeadContextAttention, self).__init__()

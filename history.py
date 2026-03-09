@@ -1,31 +1,38 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+os.environ["HF_HOME"] = os.getenv("HF_HOME", "F:/Batool Amina/MHD/huggingface_cache")
+os.environ["HUGGINGFACE_HUB_CACHE"] = os.getenv("HF_HOME", "F:/Batool Amina/MHD/huggingface_cache")
+
 import torch
 import pickle
 import re
 import string
-import os
 from transformers import RobertaTokenizer, BertTokenizer
-from dotenv import load_dotenv
+from huggingface_hub import hf_hub_download, login
 from model_architecture import HybridClassifier
 
-load_dotenv()
+HF_TOKEN = os.getenv("HF_TOKEN")
+if HF_TOKEN:
+    login(token=HF_TOKEN)
+
+REPO_ID = os.getenv("HF_REPO_ID", "BatoolAmina/mental-health-chatbot-hybrid")
+MODEL_FILE = os.getenv("HF_MODEL_FILE", "hybrid_model_weights.bin")
+ENCODER_FILE = os.getenv("HF_ENCODER_FILE", "label_encoder.pkl")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+weights_path = hf_hub_download(repo_id=REPO_ID, filename=MODEL_FILE)
+encoder_path = hf_hub_download(repo_id=REPO_ID, filename=ENCODER_FILE)
 
-MODEL_PATH = os.getenv("MODEL_PATH", "model/hybrid_model_weights.bin")
-ENCODER_PATH = os.getenv("ENCODER_PATH", "model/label_encoder.pkl")
-
-MODEL_PATH = os.path.join(BASE_DIR, MODEL_PATH)
-ENCODER_PATH = os.path.join(BASE_DIR, ENCODER_PATH)
-
-with open(ENCODER_PATH, "rb") as f:
+with open(encoder_path, "rb") as f:
     label_encoder = pickle.load(f)
 
 class_names = label_encoder.classes_
 
 model = HybridClassifier(len(class_names))
-model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+model.load_state_dict(torch.load(weights_path, map_location=device))
 model.to(device)
 model.eval()
 

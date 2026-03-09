@@ -1,28 +1,42 @@
+import os
+from dotenv import load_dotenv
+
+# MUST happen before importing transformers or huggingface_hub
+load_dotenv()
+os.environ["HF_HOME"] = os.getenv("HF_HOME", "F:/Batool Amina/MHD/huggingface_cache")
+os.environ["HUGGINGFACE_HUB_CACHE"] = os.getenv("HF_HOME", "F:/Batool Amina/MHD/huggingface_cache")
+
 import torch
 import pickle
 import re
 import string
-import os
 from transformers import RobertaTokenizer, BertTokenizer
-from dotenv import load_dotenv
+from huggingface_hub import hf_hub_download, login
 from model_architecture import UltraHybridClassifier
 from auth import _make_mongo_client
 from datetime import datetime
 from logic_rules import apply_logic_rules
 
-load_dotenv()
+HF_TOKEN = os.getenv("HF_TOKEN")
+if HF_TOKEN:
+    login(token=HF_TOKEN)
 
+REPO_ID = os.getenv("HF_REPO_ID", "BatoolAmina/mental-health-chatbot-hybrid")
+MODEL_FILE = os.getenv("HF_MODEL_FILE", "hybrid_model_weights.bin")
+ENCODER_FILE = os.getenv("HF_ENCODER_FILE", "label_encoder.pkl")
+
+# Use cuda if available, otherwise cpu
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, os.getenv("MODEL_PATH", "model/hybrid_model.bin"))
-ENCODER_PATH = os.path.join(BASE_DIR, os.getenv("ENCODER_PATH", "model/label_encoder.pkl"))
 
-with open(ENCODER_PATH, "rb") as f:
+weights_path = hf_hub_download(repo_id=REPO_ID, filename=MODEL_FILE)
+encoder_path = hf_hub_download(repo_id=REPO_ID, filename=ENCODER_FILE)
+
+with open(encoder_path, "rb") as f:
     label_encoder = pickle.load(f)
 
 class_names = label_encoder.classes_
 model = UltraHybridClassifier(len(class_names))
-model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+model.load_state_dict(torch.load(weights_path, map_location=device))
 model.to(device)
 model.eval()
 
@@ -93,11 +107,16 @@ def predict(text, email=None):
         
         input_text = f"{past_context} {cleaned}".strip() if past_context else cleaned
 
-        r = r_tok(input_text, return_tensors="pt", max_length=128, truncation=True, padding="max_length").to(device)
-        b = b_tok(input_text, return_tensors="pt", max_length=128, truncation=True, padding="max_length").to(device)
+        r = r_tok(input_text, return_tensors="pt", max_length=128, truncation=True, padding="max_length")
+        b = b_tok(input_text, return_tensors="pt", max_length=128, truncation=True, padding="max_length")
 
         with torch.no_grad():
-            output = model(r["input_ids"], r["attention_mask"], b["input_ids"], b["attention_mask"])
+            output = model(
+                r["input_ids"].to(device), 
+                r["attention_mask"].to(device), 
+                b["input_ids"].to(device), 
+                b["attention_mask"].to(device)
+            )
             probs = torch.softmax(output, dim=1)
             confidence, index = torch.max(probs, dim=1)
 
