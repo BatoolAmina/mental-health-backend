@@ -13,4 +13,3 @@ instance/
 *.bin
 *.pt
 *.pth
-*.pkl
